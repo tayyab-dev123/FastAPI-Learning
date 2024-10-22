@@ -2,8 +2,22 @@ from typing import Optional
 from fastapi import FastAPI, Response, status, HTTPException
 from pydantic import BaseModel
 from random import randrange
+import psycopg
+
 
 app = FastAPI()  # Create an instance of FastAPI
+
+try:
+    with psycopg.connect(
+        "host=localhost password=tayyab dbname=fastapi user=postgres"
+    ) as conn:
+
+        # Open a cursor to perform database operations
+        with conn.cursor() as cur:
+            cur = conn.cursor()
+    print("Connection successful")
+except Exception as e:
+    print(f"An error occurred: {e}")
 
 
 class Post(BaseModel):
