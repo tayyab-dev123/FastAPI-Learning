@@ -1,26 +1,46 @@
 from typing import Optional
-from fastapi import FastAPI, Response, status, HTTPException
+from fastapi import FastAPI, Response, status, HTTPException, Depends
 from pydantic import BaseModel
 from random import randrange
 import psycopg
 from psycopg.rows import dict_row
 import time
+from contextlib import asynccontextmanager
 
 app = FastAPI()  # Create an instance of FastAPI
 
+# Global variable to hold the database connection
+conn = None
+
 
 def get_db_connection():
-    while True:
-        try:
-            conn = psycopg.connect(
-                "host=localhost password=tayyab dbname=fastapi user=postgres",
-                row_factory=dict_row,
-            )
-            print("Connection successful")
-            return conn
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            time.sleep(2)
+    global conn
+    if conn is None:
+        while True:
+            try:
+                conn = psycopg.connect(
+                    "host=localhost password=tayyab dbname=fastapi user=postgres",
+                    row_factory=dict_row,
+                )
+                print("Connection successful")
+                break
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                time.sleep(2)
+    return conn
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup event
+    get_db_connection()
+    yield
+    # Shutdown event
+    if conn:
+        conn.close()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 class Post(BaseModel):
@@ -30,15 +50,8 @@ class Post(BaseModel):
     rating: Optional[int] = None
 
 
-my_posts = [
-    {"id": 1, "title": "Hello World", "content": "This is my first blog post"},
-    {"id": 2, "title": "Second Post", "content": "This is my second blog post"},
-]
-
-
 @app.get("/")  # Decorator to define the path of the endpoint
-def read_root():
-    conn = get_db_connection()
+def read_root(conn=Depends(get_db_connection)):
     with conn.cursor() as cur:
         cur.execute("""SELECT * FROM posts""")
         posts = cur.fetchall()
@@ -47,8 +60,7 @@ def read_root():
 
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
-def create_post(post: Post):
-    conn = get_db_connection()
+def create_post(post: Post, conn=Depends(get_db_connection)):
     with conn.cursor() as cur:
         cur.execute(
             """INSERT INTO posts (title,content,published) VALUES (%s,%s,%s) RETURNING * """,
@@ -60,8 +72,7 @@ def create_post(post: Post):
 
 
 @app.get("/posts/{post_id}")
-def read_post(post_id: int, response: Response):
-    conn = get_db_connection()
+def read_post(post_id: int, response: Response, conn=Depends(get_db_connection)):
     with conn.cursor() as cur:
         cur.execute("""SELECT * FROM posts WHERE id = %s """, (post_id,))
         post = cur.fetchone()
@@ -76,8 +87,7 @@ def read_post(post_id: int, response: Response):
 
 
 @app.delete("/posts/{post_id}")
-def delete_post(post_id: int):
-    conn = get_db_connection()
+def delete_post(post_id: int, conn=Depends(get_db_connection)):
     with conn.cursor() as cur:
         cur.execute("""DELETE FROM posts WHERE id = %s RETURNING *""", (post_id,))
         deleted_post = cur.fetchone()
@@ -90,15 +100,9 @@ def delete_post(post_id: int):
         )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    # for index, post in enumerate(my_posts):
-    #     if post["id"] == post_id:
-    #         my_posts.pop(index)
-    #         return Response(status_code=status.HTTP_204_NO_CONTENT)
-
 
 @app.put("/posts/{post_id}")
-def update_post(post_id: int, post: Post):
-    conn = get_db_connection()
+def update_post(post_id: int, post: Post, conn=Depends(get_db_connection)):
     with conn.cursor() as cur:
         cur.execute(
             """UPDATE posts set title= %s , content= %s , published= %s where id = %s RETURNING *""",
