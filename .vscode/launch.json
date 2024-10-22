@@ -9,7 +9,7 @@
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
-      "args": ["aap.main:app", "--reload", "--port", "8080"],
+      "args": ["app.main:app", "--reload", "--port", "9000"],
       "jinja": true,
       "justMyCode": true
     },
