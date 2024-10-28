@@ -1,16 +1,16 @@
-from sqlalchemy import String, Integer, Boolean, Column
+from sqlalchemy import String, Integer, Boolean, Column, text
 from typing import Optional
 from pydantic import BaseModel
-from database import base, engine
+from .database import base, engine, SessionLocal
+from sqlalchemy.types import TIMESTAMP
 
 
-def create_table():
-    base.metadata.create_all(engine)
-
-
-class Person(base):
-    __tablename__ = "person"
+class Posts(base):
+    __tablename__ = "posts"
     id = Column(Integer, primary_key=True, index=True)
-    firstname = Column(String(40), nullable=False)
-    lastname = Column(String(40), nullable=False)
-    isMale = Column(Boolean)
+    title = Column(String, nullable=False)
+    content = Column(String, nullable=False)
+    published = Column(Boolean, nullable=False, server_default="TRUE")
+    created_at = Column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")
+    )
