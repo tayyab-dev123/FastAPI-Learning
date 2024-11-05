@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 
 # database.py
 
+# SQLALCHEMY_DATABASE_URL = "postgresql://postgres:<password>@localhost/<Database name>"
 SQLALCHEMY_DATABASE_URL = "postgresql://postgres:tayyab@localhost/fastapi"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=True)
