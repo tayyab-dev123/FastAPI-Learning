@@ -18,9 +18,9 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-def hello():
-    return {"Message": "Hello World"}
+# @app.get("/")
+# def hello():
+#     return {"Message": "Hello World"}
 
 
 app.include_router(post.router)
